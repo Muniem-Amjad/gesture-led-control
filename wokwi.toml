@@ -1,0 +1,5 @@
+[wokwi]
+version = 1
+elf = "build/arduino.avr.uno/gesture_con.ino.elf"
+firmware = "build/arduino.avr.uno/gesture_con.ino.hex"
+rfc2217ServerPort = 4000

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gesture Control System</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0f1117">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f1117;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: #161b27;
+    border-bottom: 1px solid #1e2d45;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #00d4ff, #0070f3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #00d4ff, #0070f3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.5px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .badge.connected { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+  .badge.disconnected { background: rgba(255,60,60,0.15); color: #ff3c3c; border: 1px solid rgba(255,60,60,0.3); }
+  .badge.idle { background: rgba(150,150,150,0.15); color: #aaa; border: 1px solid rgba(150,150,150,0.3); }
+
+  .badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .badge.connected::before { animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-start {
+    background: linear-gradient(135deg, #00c864, #00a050);
+    color: #fff;
+  }
+
+  .btn-start:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,200,100,0.4); }
+
+  .btn-stop {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: #fff;
+  }
+
+  .btn-stop:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,60,60,0.4); }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Main Layout ── */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    grid-template-rows: 1fr;
+    gap: 10px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  /* ── Left Column ── */
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  /* Camera */
+  .camera-card {
+    background: #161b27;
+    border: 1px solid #1e2d45;
+    border-radius: 12px;
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .card-header {
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e2d45;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .fps-badge {
+    font-size: 11px;
+    color: #00d4ff;
+    font-weight: 600;
+    background: rgba(0,212,255,0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .camera-feed {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .camera-feed img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .gesture-overlay {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #00d4ff;
+  }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .stat-card {
+    background: #161b27;
+    border: 1px solid #1e2d45;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stat-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .stat-info { flex: 1; min-width: 0; }
+
+  .stat-label {
+    font-size: 10px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  /* ── Right Column ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  /* LED Panel */
+  .led-card {
+    background: #161b27;
+    border: 1px solid #1e2d45;
+    border-radius: 12px;
+    padding: 10px;
+    flex-shrink: 0;
+  }
+
+  .led-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .led-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #0f1117;
+    border-radius: 8px;
+    border: 1px solid #1e2d45;
+    transition: all 0.3s;
+  }
+
+  .led-item.on {
+    border-color: rgba(255, 60, 60, 0.5);
+    background: rgba(255, 60, 60, 0.08);
+  }
+
+  .led-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #1e2d45;
+    border: 2px solid #2d3a50;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+
+  .led-item.on .led-dot {
+    background: #ff3c3c;
+    border-color: #ff6666;
+    box-shadow: 0 0 10px #ff3c3c, 0 0 20px rgba(255,60,60,0.5);
+  }
+
+  .led-label {
+    font-size: 12px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .led-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .led-item.on .led-status {
+    background: rgba(255,60,60,0.2);
+    color: #ff6666;
+  }
+
+  .led-item:not(.on) .led-status {
+    background: rgba(100,116,139,0.2);
+    color: #64748b;
+  }
+
+  /* Finger visual */
+  .finger-display {
+    background: #161b27;
+    border: 1px solid #1e2d45;
+    border-radius: 12px;
+    padding: 10px;
+    flex-shrink: 0;
+  }
+
+  .finger-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    background: #0f1117;
+    border-radius: 8px;
+  }
+
+  .finger-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #1e2d45;
+    border: 2px solid #2d3a50;
+    transition: all 0.3s;
+  }
+
+  .finger-dot.active {
+    background: #0070f3;
+    border-color: #00d4ff;
+    box-shadow: 0 0 8px #0070f3;
+  }
+
+  /* Log */
+  .log-card {
+    background: #161b27;
+    border: 1px solid #1e2d45;
+    border-radius: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .log-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px;
+    font-family: 'Consolas', monospace;
+    min-height: 0;
+  }
+
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: #2d3a50; border-radius: 2px; }
+
+  .log-entry {
+    font-size: 10px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .log-time { color: #475569; flex-shrink: 0; }
+  .log-msg { color: #94a3b8; }
+  .log-entry.success .log-msg { color: #00c864; }
+  .log-entry.error .log-msg { color: #ff4444; }
+  .log-entry.warning .log-msg { color: #f59e0b; }
+
+  /* PWA Install */
+  #installBtn {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    color: white;
+  }
+  #installBtn:hover { box-shadow: 0 4px 12px rgba(124,58,237,0.4); transform: translateY(-1px); }
+  #installBtn { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <div class="logo">🤖</div>
+    <div>
+      <h1>GESTURE CONTROL SYSTEM</h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="wokwiBadge" class="badge idle">Wokwi Idle</span>
+    <span id="serialBadge" class="badge disconnected">Serial Off</span>
+    <button class="btn btn-start" id="startBtn" onclick="startSystem()">
+      <span class="spinner" id="startSpinner"></span>
+      ▶ Start System
+    </button>
+    <button class="btn btn-stop" id="stopBtn" onclick="stopSystem()" disabled>
+      ⏹ Stop
+    </button>
+    <button class="btn" id="shutdownBtn" onclick="shutdownAll()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;">
+      ⏻ Close All
+    </button>
+    <button class="btn" id="installBtn" onclick="installPWA()">
+      ⬇ Install App
+    </button>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left Column -->
+  <div class="left-col">
+
+    <!-- Camera -->
+    <div class="camera-card">
+      <div class="card-header">
+        <span class="card-title">📹 Live Camera Feed</span>
+        <span class="fps-badge" id="fpsBadge">0 FPS</span>
+      </div>
+      <div class="camera-feed">
+        <img id="cameraFeed" src="/video_feed" alt="Camera Feed">
+        <div class="gesture-overlay" id="gestureLabel">System Idle</div>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(0,112,243,0.15);">🖐</div>
+        <div class="stat-info">
+          <div class="stat-label">Fingers</div>
+          <div class="stat-value" id="fingerCount" style="color:#0070f3;">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(0,200,100,0.15);">💡</div>
+        <div class="stat-info">
+          <div class="stat-label">LEDs Active</div>
+          <div class="stat-value" id="ledCount" style="color:#00c864;">0/3</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.15);">⚡</div>
+        <div class="stat-info">
+          <div class="stat-label">FPS</div>
+          <div class="stat-value" id="fpsValue" style="color:#f59e0b;">0</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column -->
+  <div class="right-col">
+
+    <!-- LED Panel -->
+    <div class="led-card">
+      <div class="card-title">💡 LED STATUS</div>
+      <div class="led-grid">
+        <div class="led-item" id="led1">
+          <div class="led-dot"></div>
+          <span class="led-label">LED 1 — Pin 11</span>
+          <span class="led-status">OFF</span>
+        </div>
+        <div class="led-item" id="led2">
+          <div class="led-dot"></div>
+          <span class="led-label">LED 2 — Pin 10</span>
+          <span class="led-status">OFF</span>
+        </div>
+        <div class="led-item" id="led3">
+          <div class="led-dot"></div>
+          <span class="led-label">LED 3 — Pin 9</span>
+          <span class="led-status">OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finger Visual -->
+    <div class="finger-display">
+      <div class="card-title">🖐 FINGER DETECTION</div>
+      <div class="finger-dots">
+        <div class="finger-dot" id="fd1"></div>
+        <div class="finger-dot" id="fd2"></div>
+        <div class="finger-dot" id="fd3"></div>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="log-card">
+      <div class="card-header">
+        <span class="card-title">📋 Activity Log</span>
+        <span style="font-size:10px;color:#475569;cursor:pointer" onclick="clearLog()">Clear</span>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-entry">
+          <span class="log-time">--:--:--</span>
+          <span class="log-msg">System ready. Click Start System to begin.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let deferredPrompt = null;
+  let isRunning = false;
+
+  // PWA Install
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBtn').style.display = 'flex';
+  });
+
+  function installPWA() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        document.getElementById('installBtn').style.display = 'none';
+      });
+    }
+  }
+
+  // Start System
+  async function startSystem() {
+    const btn = document.getElementById('startBtn');
+    const spinner = document.getElementById('startSpinner');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btn.childNodes[btn.childNodes.length - 1].textContent = ' Starting...';
+
+    try {
+      const res = await fetch('/api/start', { method: 'POST' });
+      const data = await res.json();
+      isRunning = true;
+      document.getElementById('stopBtn').disabled = false;
+    } catch (e) {
+      console.error(e);
+    }
+
+    spinner.style.display = 'none';
+    btn.childNodes[btn.childNodes.length - 1].textContent = ' Running';
+  }
+
+  // Stop System
+  async function stopSystem() {
+    document.getElementById('stopBtn').disabled = true;
+    try {
+      await fetch('/api/stop', { method: 'POST' });
+      isRunning = false;
+    } catch (e) {}
+
+    const btn = document.getElementById('startBtn');
+    btn.disabled = false;
+    btn.childNodes[btn.childNodes.length - 1].textContent = ' Start System';
+  }
+
+  // Shutdown everything (closes Flask + CMD)
+  async function shutdownAll() {
+    if (!confirm('This will close the entire system including the server. Continue?')) return;
+    try {
+      await fetch('/api/shutdown', { method: 'POST' });
+    } catch (e) {}
+    setTimeout(() => window.close(), 1500);
+  }
+
+  // Clear log
+  function clearLog() {
+    document.getElementById('logBody').innerHTML = '';
+  }
+
+  // Update UI from state
+  function updateUI(state) {
+    // FPS
+    document.getElementById('fpsBadge').textContent = state.fps + ' FPS';
+    document.getElementById('fpsValue').textContent = state.fps;
+
+    // Gesture label
+    const label = state.gesture_label || 'No Hand';
+    const overlay = document.getElementById('gestureLabel');
+    overlay.textContent = label;
+    if (label.includes('Out of Range')) {
+      overlay.style.color = '#ff4444';
+      overlay.style.borderColor = 'rgba(255,60,60,0.4)';
+    } else {
+      overlay.style.color = '#00d4ff';
+      overlay.style.borderColor = 'rgba(0,212,255,0.3)';
+    }
+
+    // Finger count
+    const fc = state.finger_count || 0;
+    document.getElementById('fingerCount').textContent = fc;
+
+    // Finger dots — only light up if within range
+    const outOfRange = label.includes('Out of Range');
+    for (let i = 1; i <= 3; i++) {
+      const dot = document.getElementById('fd' + i);
+      dot.classList.toggle('active', !outOfRange && i <= fc);
+    }
+
+    // LEDs
+    const leds = state.leds || [false, false, false];
+    let activeCount = 0;
+    leds.forEach((on, i) => {
+      const el = document.getElementById('led' + (i + 1));
+      const statusEl = el.querySelector('.led-status');
+      el.classList.toggle('on', on);
+      statusEl.textContent = on ? 'ON' : 'OFF';
+      if (on) activeCount++;
+    });
+    document.getElementById('ledCount').textContent = activeCount + '/3';
+
+    // Badges
+    const wokwiBadge = document.getElementById('wokwiBadge');
+    const serialBadge = document.getElementById('serialBadge');
+
+    if (state.wokwi_connected) {
+      wokwiBadge.className = 'badge connected';
+      wokwiBadge.textContent = 'Wokwi Connected';
+    } else if (state.running) {
+      wokwiBadge.className = 'badge disconnected';
+      wokwiBadge.textContent = 'Wokwi Connecting...';
+    } else {
+      wokwiBadge.className = 'badge idle';
+      wokwiBadge.textContent = 'Wokwi Idle';
+    }
+
+    if (state.serial_connected) {
+      serialBadge.className = 'badge connected';
+      serialBadge.textContent = 'Serial Active';
+    } else {
+      serialBadge.className = 'badge disconnected';
+      serialBadge.textContent = 'Serial Off';
+    }
+
+    // Log
+    // if (state.log && state.log.length > 0) {
+    //   const logBody = document.getElementById('logBody');
+    //   const existingCount = logBody.children.length;
+      
+    //   if (state.log.length !== existingCount) {
+    //     logBody.innerHTML = state.log.map(entry => `
+    //       <div class="log-entry ${entry.level || ''}">
+    //         <span class="log-time">${entry.time}</span>
+    //         <span class="log-msg">${entry.message}</span>
+    //       </div>
+    //     `).join('');
+    //   }
+    // }
+      if (state.log && state.log.length > 0) {
+        const logBody = document.getElementById('logBody');
+        const firstMsg = logBody.querySelector('.log-msg');
+        const latestMsg = state.log[0].time + state.log[0].message;
+
+        if (!firstMsg || firstMsg.textContent !== state.log[0].message || 
+            logBody.querySelector('.log-time')?.textContent !== state.log[0].time) {
+            logBody.innerHTML = state.log.map(entry => `
+            <div class="log-entry ${entry.level || ''}">
+              <span class="log-time">${entry.time}</span>
+              <span class="log-msg">${entry.message}</span>
+            </div>
+          `).join('');
+        }
+      }
+  }
+
+  // Poll state every 500ms
+  async function pollState() {
+    try {
+      const res = await fetch('/api/state');
+      const state = await res.json();
+      updateUI(state);
+    } catch (e) {}
+  }
+
+  setInterval(pollState, 500);
+  pollState();
+</script>
+</body>
+</html>
