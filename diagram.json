@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "Anonymous maker",
+  "author": "Muniem Amjad",
   "editor": "wokwi",
   "parts": [
     { "type": "wokwi-arduino-uno", "id": "uno", "top": 96.6, "left": -0.6, "attrs": {} },
@@ -48,6 +48,58 @@
       "left": 124.25,
       "rotate": 90,
       "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl1",
+      "top": -230.4,
+      "left": 182.4,
+      "attrs": { "text": "LED 3 (Pin 11)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl2",
+      "top": -180,
+      "left": 179,
+      "attrs": { "text": "LED 2 (Pin 10)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl3",
+      "top": -124.8,
+      "left": 182.4,
+      "attrs": { "text": "LED 1 (Pin 9)" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl4",
+      "top": -57.6,
+      "left": 19.2,
+      "rotate": 90,
+      "attrs": { "text": "R1 220 Ω" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl5",
+      "top": -57.6,
+      "left": 57.6,
+      "rotate": 90,
+      "attrs": { "text": "R2 220 Ω" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl6",
+      "top": -57.6,
+      "left": 105.6,
+      "rotate": 90,
+      "attrs": { "text": "R3 220 Ω" }
+    },
+    {
+      "type": "wokwi-text",
+      "id": "lbl7",
+      "top": 307.2,
+      "left": 28.8,
+      "attrs": { "text": "Arduino UNO" }
     }
   ],
   "connections": [
@@ -61,6 +113,5 @@
     [ "r1:1", "led1:A", "green", [ "h0", "v-124.8" ] ],
     [ "r2:1", "led3:A", "green", [ "h0", "v-76.8" ] ]
   ],
-  "dependencies": {},
-  "serialPortName": "COM3"
+  "dependencies": {}
 }
